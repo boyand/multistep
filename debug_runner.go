@@ -37,13 +37,7 @@ type DebugRunner struct {
 	runner *BasicRunner
 }
 
-func (r *DebugRunner) Run(state StateBag) {
-	r.l.Lock()
-	if r.runner != nil {
-		panic("already running")
-	}
-	r.runner = new(BasicRunner)
-	r.l.Unlock()
+func (r *DebugRunner) Run(state StateBag) error {
 
 	pauseFn := r.PauseFn
 
@@ -62,9 +56,17 @@ func (r *DebugRunner) Run(state StateBag) {
 		}
 	}
 
+	r.l.Lock()
+	if r.runner != nil {
+		return fmt.Errorf("Already running")
+	}
+	r.runner = NewBasicRunner(steps)
+	r.l.Unlock()
+
 	// Then just use a basic runner to run it
-	r.runner.Steps = steps
 	r.runner.Run(state)
+
+	return nil
 }
 
 func (r *DebugRunner) Cancel() {

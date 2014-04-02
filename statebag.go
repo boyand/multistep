@@ -16,7 +16,7 @@ type StateBag interface {
 // protected by a RWMutex.
 type BasicStateBag struct {
 	data map[string]interface{}
-	l    sync.RWMutex
+	sync.RWMutex
 	once sync.Once
 }
 
@@ -26,16 +26,16 @@ func (b *BasicStateBag) Get(k string) interface{} {
 }
 
 func (b *BasicStateBag) GetOk(k string) (interface{}, bool) {
-	b.l.RLock()
-	defer b.l.RUnlock()
+	b.RLock()
+	defer b.RUnlock()
 
 	result, ok := b.data[k]
 	return result, ok
 }
 
 func (b *BasicStateBag) Put(k string, v interface{}) {
-	b.l.Lock()
-	defer b.l.Unlock()
+	b.Lock()
+	defer b.Unlock()
 
 	// Make sure the map is initialized one time, on write
 	b.once.Do(func() {

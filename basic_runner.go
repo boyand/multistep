@@ -1,6 +1,7 @@
 package multistep
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 )
@@ -22,40 +23,49 @@ type BasicRunner struct {
 	cancelCh chan struct{}
 	doneCh   chan struct{}
 	state    runState
-	l        sync.Mutex
+	sync.Mutex
 }
 
-func (b *BasicRunner) Run(state StateBag) {
-	b.l.Lock()
+//NewRunner returns a new BasicRunner instance
+
+func NewBasicRunner(steps []Step) *BasicRunner {
+	return &BasicRunner{
+		Steps:    steps,
+		cancelCh: make(chan struct{}),
+		doneCh:   make(chan struct{}),
+		state:    stateIdle,
+	}
+}
+
+func (b *BasicRunner) Run(state StateBag) error {
+	b.Lock()
+
 	if b.state != stateIdle {
-		panic("already running")
+		return fmt.Errorf("Already running")
 	}
 
-	cancelCh := make(chan struct{})
-	doneCh := make(chan struct{})
-	b.cancelCh = cancelCh
-	b.doneCh = doneCh
 	b.state = stateRunning
-	b.l.Unlock()
+	b.Unlock()
 
 	defer func() {
-		b.l.Lock()
-		b.cancelCh = nil
-		b.doneCh = nil
+		b.Lock()
+		//b.cancelCh = nil
+		//b.doneCh = nil
 		b.state = stateIdle
-		close(doneCh)
-		b.l.Unlock()
+		close(b.doneCh)
+		//close(b.cancelCh)
+		b.Unlock()
 	}()
 
 	// This goroutine listens for cancels and puts the StateCancelled key
 	// as quickly as possible into the state bag to mark it.
 	go func() {
 		select {
-		case <-cancelCh:
+		case <-b.cancelCh:
 			// Flag cancel and wait for finish
 			state.Put(StateCancelled, true)
-			<-doneCh
-		case <-doneCh:
+			<-b.doneCh
+		case <-b.doneCh:
 		}
 	}()
 
@@ -79,14 +89,15 @@ func (b *BasicRunner) Run(state StateBag) {
 			break
 		}
 	}
+	return nil
 }
 
 func (b *BasicRunner) Cancel() {
-	b.l.Lock()
+	b.Lock()
 	switch b.state {
 	case stateIdle:
 		// Not running, so Cancel is... done.
-		b.l.Unlock()
+		b.Unlock()
 		return
 	case stateRunning:
 		// Running, so mark that we cancelled and set the state
@@ -95,8 +106,8 @@ func (b *BasicRunner) Cancel() {
 		fallthrough
 	case stateCancelling:
 		// Already cancelling, so just wait until we're done
-		ch := b.doneCh
-		b.l.Unlock()
-		<-ch
+		//ch := b.doneCh
+		b.Unlock()
+		<-b.doneCh
 	}
 }

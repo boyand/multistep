@@ -8,7 +8,7 @@ import (
 
 func TestBasicRunner_ImplRunner(t *testing.T) {
 	var raw interface{}
-	raw = &BasicRunner{}
+	raw = NewBasicRunner([]Step{})
 	if _, ok := raw.(Runner); !ok {
 		t.Fatalf("BasicRunner must be a Runner")
 	}
@@ -19,7 +19,7 @@ func TestBasicRunner_Run(t *testing.T) {
 	stepA := &TestStepAcc{Data: "a"}
 	stepB := &TestStepAcc{Data: "b"}
 
-	r := &BasicRunner{Steps: []Step{stepA, stepB}}
+	r := NewBasicRunner([]Step{stepA, stepB})
 	r.Run(data)
 
 	// Test run data
@@ -52,7 +52,7 @@ func TestBasicRunner_Run_Halt(t *testing.T) {
 	stepB := &TestStepAcc{Data: "b", Halt: true}
 	stepC := &TestStepAcc{Data: "c"}
 
-	r := &BasicRunner{Steps: []Step{stepA, stepB, stepC}}
+	r := NewBasicRunner([]Step{stepA, stepB, stepC})
 	r.Run(data)
 
 	// Test run data
@@ -84,7 +84,7 @@ func TestBasicRunner_Cancel(t *testing.T) {
 	stepInt := &TestStepSync{ch}
 	stepC := &TestStepAcc{Data: "c"}
 
-	r := &BasicRunner{Steps: []Step{stepA, stepB, stepInt, stepC}}
+	r := NewBasicRunner([]Step{stepA, stepB, stepInt, stepC})
 	go r.Run(data)
 
 	// Wait until we reach the sync point
