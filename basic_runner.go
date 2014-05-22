@@ -49,11 +49,8 @@ func (b *BasicRunner) Run(state StateBag) error {
 
 	defer func() {
 		b.Lock()
-		//b.cancelCh = nil
-		//b.doneCh = nil
 		b.state = stateIdle
 		close(b.doneCh)
-		//close(b.cancelCh)
 		b.Unlock()
 	}()
 
